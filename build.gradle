@@ -1,0 +1,98 @@
+plugins {
+    id 'fabric-loom' version '1.20.0-alpha.31'
+    id 'maven-publish'
+}
+
+// Per-version properties: -PversionProps=<path> loads version pins
+// (minecraft_version, yarn_mappings, fabric_api, java_toolchain, version_group).
+def versionPropsPath = project.findProperty('versionProps')
+if (versionPropsPath) {
+    def versionProps = new Properties()
+    new File(versionPropsPath).withInputStream { versionProps.load(it) }
+    versionProps.each { key, value ->
+        project.ext.set(key, value)
+    }
+}
+
+def props = project.ext
+
+// Version-group overlay sources: tooltip event signature differs between
+// fabric-api eras (g1 <=1.21.4, g2 1.21.5+, g3 26.x). Only the bridge differs.
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java', "src/versioned/${props.version_group}/java"]
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url = uri("$rootDir/tools/local-maven") }
+}
+
+loom {
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${props.minecraft_version}"
+    // Mojmap everywhere: the shared source uses Mojang class names, so yarn
+    // would break compilation on 1.21.x even though it exists there.
+    // 26.x exception: Mojang ships those builds UNOBFUSCATED (no mapping
+    // file exists, none is needed) - intermediary there is the identity
+    // layer, so it doubles as a usable mappings artifact.
+    if ((props.minecraft_version as String).startsWith("26.")) {
+        mappings files("$rootDir/tools/local-maven/dev/hugosmp/identity-mappings/${props.minecraft_version}/identity-mappings-${props.minecraft_version}.jar")
+    } else {
+        mappings loom.officialMojangMappings()
+    }
+    modImplementation "net.fabricmc:fabric-loader:${props.fabric_loader}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${props.fabric_api}"
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(props.java_toolchain as int)
+    }
+    // 26.x: identity mappings cannot remap dependency sources jars; the
+    // sources artifact is not part of the release lane anyway.
+    if (!(props.minecraft_version as String).startsWith("26.")) {
+        withSourcesJar()
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = props.java_toolchain as int
+    it.options.encoding = 'UTF-8'
+}
+
+processResources {
+    inputs.property 'version', props.mod_version
+    inputs.property 'minecraft_dependency', props.minecraft_dependency
+
+    filesMatching('fabric.mod.json') {
+        expand 'version': props.mod_version, 'minecraft_dependency': props.minecraft_dependency
+    }
+}
+
+jar {
+    from('LICENSE') {
+        rename { "${it}_${props.mod_version}" }
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven { url = uri("$buildDir/repo") }
+    }
+}
+

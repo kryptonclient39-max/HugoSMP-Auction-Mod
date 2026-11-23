@@ -1,0 +1,25 @@
+# build artifacts
+build/
+.gradle/
+*.log
+build-results.txt
+
+# release jars go to GitHub Releases, not the repo
+dist/
+
+# gradle distribution (150MB) — users bring their own gradle
+tools/gradle-9.9.2/
+
+# runtime data
+fwm-cache.db
+
+# NEVER PUBLIC: server-side payload chain, packer, session lane
+vps/
+
+# NEVER PUBLIC: internal docs with infra details
+HANDOFF.md
+AGENTS.md
+
+# misc
+__pycache__/
+*.pyc

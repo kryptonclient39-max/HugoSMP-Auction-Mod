@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "hugosmp-auctionhouse",
+  "version": "${version}",
+  "name": "HugoSMP Auction",
+  "description": "Shows auction-house prices for hovered items based on listings the client has observed in the server's auction GUIs.",
+  "authors": [
+    "HugoSMP Tools"
+  ],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.hugosmp.auctionhouse.HugoSmpAuction"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_dependency}",
+    "java": ">=21"
+  },
+  "suggests": {},
+  "source": "https://github.com/kryptonclient39-max/HugoSMP-Auction-Mod"
+}
